@@ -9,48 +9,67 @@ from pybricks.media.ev3dev import SoundFile, ImageFile
 from pybricks.iodevices import I2CDevice, UARTDevice
 from pybricks.tools import wait
 
-from ev3_controller import Ev3Controller
-from Command import Command
+#from ev3_controller import Ev3Controller
 import connection
 
 # Initialize the EV3 brick
 ev3 = EV3Brick()
 
-left_motor_port = Port.C
-right_motor_port = Port.D
-wheel_diameter = 55
-axle_track = 200
-gyro_port = Port.S1
+left_motor = Motor(Port.C)
+right_motor = Motor(Port.D)
 
-robot = Ev3Controller(left_motor_port, right_motor_port, wheel_diameter, axle_track, gyro_port)
+drive_base = DriveBase(left_motor, right_motor, 55, 200)
 
-server_socket = connection.create_server_socket(5001)
+server_socket = connection.create_server_socket(5000)
 client_socket = connection.accept_connection(server_socket)
 
-def parse_command_str(command: str):
+def split_command(command: str):
     split_command_array = command.split()
     suck = int(split_command_array[0])
     speed = int(split_command_array[1])
     angle = float(split_command_array[2])
-    return Command(speed, angle)
+    print(suck, speed, angle)
+    if speed == 0 and angle == 0.0:
+        print("command: stop")
+        return ("stop", speed, angle)
+    elif speed != 0 and angle == 0.0:
+        print("command: straight")
+        return ("straight", speed)
+    elif speed == 0 and angle != 0:
+        print("command: turn")
+        return ("turn", angle)
+    elif speed != 0 and angle != 0:
+        print("command: strafe")
+        return ("strafe", speed, angle)
+    return ("Unknow command")
 
 
 
 try:
     while True:
-        command_str = client_socket.recv(1024).decode()
-        command = parse_command_str(command_str)
-        if command.command_type() == "Unknow command":
+        data = client_socket.recv(1024).decode()
+        if data == "exit":
             break
-        robot.queue_put(command)
-
-
+        command = split_command(data)
+        print("recived:",command)
+        if command[0] == "straight":
+            print("straight")
+            drive_base.drive(command[1], 0)
+        elif command[0] == "strafe":
+            print("strafe")
+            drive_base.drive(command[1], command[2])
+        elif command[0] == "stop":
+            print("stop")
+            drive_base.stop()
+            left_motor.brake()
+            right_motor.brake()
+        elif command[0] == "turn":
+            drive_base.drive(command[1])
 
 
 except Exception as e:
     print("Something went wrong when writing")
     print(e)
 finally:
-    robot.stop_controller()
     client_socket.close()
     server_socket.close()
