@@ -11,20 +11,3 @@ def accept_connection(server_socket):
     client_socket, addr = server_socket.accept()
     print("Connected to:", addr)
     return client_socket
-
-
-def read_from_arduino():
-    try:
-        # Read one byte from the Arduino
-        data = i2c.read(1)
-        print("Received data:", data)
-    except Exception as e:  
-        print("Failed to read from Arduino:", e)
-
-def write_to_arduino(value):
-    try:
-        # Write one byte to the Arduino
-        i2c.write(value)
-        print("Sent data:", value)
-    except Exception as e:
-        print("Failed to write to Arduino:", e)

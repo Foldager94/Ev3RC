@@ -1,7 +1,7 @@
 import _thread
 import Queue
 
-class Arduino_Controller:
+class ArduinoController:
     def __init__(self, connection):
         self.connection = connection
         self.queue = Queue()
@@ -38,7 +38,7 @@ class Arduino_Controller:
             self.connection.write(b'F')
         except Exception as e:
             print(e)
-    
+
     def latch_open(self):
         try:
             self.connection.write(b'l')
