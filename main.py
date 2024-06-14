@@ -18,53 +18,38 @@ ev3 = EV3Brick()
 left_motor = Motor(Port.C)
 right_motor = Motor(Port.D)
 
-drive_base = DriveBase(left_motor, right_motor, 55, 200)
 
-server_socket = connection.create_server_socket(5000)
+server_socket = connection.create_server_socket(5001)
 client_socket = connection.accept_connection(server_socket)
 
 def split_command(command: str):
     split_command_array = command.split()
-    suck = int(split_command_array[0])
-    speed = int(split_command_array[1])
-    angle = float(split_command_array[2])
-    print(suck, speed, angle)
-    if speed == 0 and angle == 0.0:
-        print("command: stop")
-        return ("stop", speed, angle)
-    elif speed != 0 and angle == 0.0:
-        print("command: straight")
-        return ("straight", speed)
-    elif speed == 0 and angle != 0:
-        print("command: turn")
-        return ("turn", angle)
-    elif speed != 0 and angle != 0:
-        print("command: strafe")
-        return ("strafe", speed, angle)
-    return ("Unknow command")
+    lm_speed = float(split_command_array[0])
+    rm_speed = float(split_command_array[1])
+    suck = int(split_command_array[2])
+    print(lm_speed, rm_speed, suck)
+    return lm_speed, rm_speed, suck
 
+def robot_run(lm_speed, rm_speed):
+    speed = 1050
+    left_motor.run(speed*lm_speed)
+    right_motor.run(speed*rm_speed)
 
-
+def robot_stop():
+    left_motor.stop()
+    right_motor.stop()
 try:
     while True:
         data = client_socket.recv(1024).decode()
         if data == "exit":
             break
-        command = split_command(data)
-        print("recived:",command)
-        if command[0] == "straight":
-            print("straight")
-            drive_base.drive(command[1], 0)
-        elif command[0] == "strafe":
-            print("strafe")
-            drive_base.drive(command[1], command[2])
-        elif command[0] == "stop":
-            print("stop")
-            drive_base.stop()
-            left_motor.brake()
-            right_motor.brake()
-        elif command[0] == "turn":
-            drive_base.drive(command[1])
+        lm_speed, rm_speed, suck = split_command(data)
+        if lm_speed != 0 or rm_speed != 0:
+            robot_run(lm_speed, rm_speed)
+        elif lm_speed == 0 and rm_speed == 0:
+            robot_stop()
+
+
 
 
 except Exception as e:
