@@ -19,7 +19,6 @@ left_motor = Motor(Port.A)
 right_motor = Motor(Port.B)
 
 arduino = UARTDevice( Port.S4, 9600 )
-
 # Opens server on port 5000 by default
 server_socket = connection.create_server_socket()
 client_socket = connection.accept_connection(server_socket)
@@ -37,6 +36,7 @@ def split_command(command: str):
         print("Error in split_command:", e)
 
 def robot_run(lm_speed, rm_speed):
+    # Motor max = 800
     max_speed = 800
     left_motor.run(max_speed*lm_speed)
     right_motor.run(max_speed*rm_speed)
@@ -69,17 +69,52 @@ def latch_close():
     except Exception as e:
         print("latch_close",e)
 
+def latch_calibrate_one():
+    try:
+        arduino.write(b'c')
+    except Exception as e:
+        print("latch_close",e)
+
+def latch_calibrate_two():
+    try:
+        arduino.write(b'C')
+    except Exception as e:
+        print("latch_close",e)
+
 def fan_test():
     try:
-        arduino.write(b't')
+        #arduino.write(b't')
+        print("Opening latch")
+        latch_open()
+        wait(5000)
+        print("Closing latch")
+        latch_close()
     except Exception as e:
         print("fan_start",e)
+que = []
 
 try:
     is_sucking = 0
     is_latch_open = 0
     while True:
-        data = client_socket.recv(1024).decode()
+        # data = client_socket.recv(1024).decode()
+        que.append(client_socket.recv(1024).decode())
+        data = que[0]
+        que.pop(0)
+        print("Command String recived:", data)
+
+        if data == "c":
+            latch_calibrate_one()
+            continue
+        if data == "cc":
+            latch_calibrate_two()
+            continue
+        if data == "t":
+            fan_test()
+            continue
+        if data == "t":
+            fan_test()
+            continue
         if data == "exit":
             break
         if data == "status":
@@ -88,10 +123,10 @@ try:
             continue
         lm_speed, rm_speed, suck, latch = split_command(data)
         if lm_speed != 0 or rm_speed != 0:
-            #robot_run(lm_speed, rm_speed)
+            robot_run(lm_speed, rm_speed)
             print("Robt_run:\nLeft motor speed:",lm_speed,"\nRight motor speed:",rm_speed)
         elif lm_speed == 0 and rm_speed == 0:
-            #robot_stop()
+            robot_stop()
             print("Robot_stop")
         if is_sucking != suck:
             is_sucking = suck
@@ -109,6 +144,7 @@ try:
             elif latch == 0:
                 latch_close()
                 print("Latch close")
+        client_socket.send("1")
 
 
 
